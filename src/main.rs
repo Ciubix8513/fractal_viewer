@@ -8,6 +8,9 @@ use ::winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+mod scene;
+mod controls;
+
 fn main() {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
@@ -74,4 +77,8 @@ fn main() {
 
     //A buffer for transferring things to and from the GPU memory
     let mut staging_belt = wgpu::util::StagingBelt::new(5*1024);
+
+
+
+
 }
