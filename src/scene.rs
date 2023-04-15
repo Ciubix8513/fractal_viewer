@@ -47,7 +47,48 @@ impl Scene {
 fn build_pipeline(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> RenderPipeline {
     let (vs_module, fs_module) = (
         device.create_shader_module(wgpu::include_wgsl!("shader/vert.wgsl")),
-        device.create_shader_module(wgpu::include_wgsl!("shader/vert.wgsl")),
+        device.create_shader_module(wgpu::include_wgsl!("shader/frag.wgsl")),
     );
-    todo!()
+
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: None,
+        bind_group_layouts: &[],
+        push_constant_ranges: &[],
+    });
+
+    device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: None,
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &vs_module,
+            entry_point: "main",
+            buffers: &[],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &fs_module,
+            entry_point: "main",
+            targets: &[Some(wgpu::ColorTargetState {
+                format: texture_format,
+                blend: Some(wgpu::BlendState {
+                    //Blend in order to have TAA
+                    color: wgpu::BlendComponent::OVER,
+                    alpha: wgpu::BlendComponent::OVER,
+                }),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            front_face: wgpu::FrontFace::Ccw,
+            ..Default::default()
+        },
+        //No need for depth
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState {
+            count: 1,
+            mask: !0,
+            alpha_to_coverage_enabled: false,
+        },
+        multiview: None,
+    })
 }
