@@ -162,8 +162,26 @@ fn main() {
                         let view = frame
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
+
+                        let data = scene::ShaderDataUniforms {
+                            zoom: 1.0,
+                            ..Default::default()
+                        }
+                        .to_uniform_data();
+                        staging_belt
+                            .write_buffer(
+                                &mut encoder,
+                                &scene.buffer,
+                                0,
+                                wgpu::BufferSize::new((data.len() * 4) as wgpu::BufferAddress)
+                                    .unwrap(),
+                                &device,
+                            )
+                            .copy_from_slice(bytemuck::cast_slice(&data));
+
                         {
                             let mut render_pass = scene.clear(&view, &mut encoder, Color::WHITE);
+                            render_pass.set_bind_group(0, &scene.bind_group, &[]);
                             scene.draw(&mut render_pass);
                         }
 
