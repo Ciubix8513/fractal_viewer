@@ -163,8 +163,9 @@ fn main() {
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
+                        let size = window.inner_size();
                         let data = scene::ShaderDataUniforms {
-                            zoom: 1.0,
+                            aspect: size.width as f32 / size.height as f32,
                             ..Default::default()
                         }
                         .to_uniform_data();

@@ -7,8 +7,9 @@ use wgpu::RenderPipeline;
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 pub struct ShaderDataUniforms {
-    pub resolution: [f32; 2],
     pub mouse: [f32; 2],
+    pub aspect: f32,
+    pub dummy: f32,
     pub zoom: f32,
     pub arr_len: i32,
     pub fractal: u32,
@@ -17,12 +18,12 @@ pub struct ShaderDataUniforms {
     pub msaa: u32,
 }
 impl ShaderDataUniforms {
-    pub fn to_uniform_data(&self) -> [u32; 2 * 2 + 6] {
+    pub fn to_uniform_data(self) -> [u32; 2 + 7 + 1 ] {
         [
-            self.resolution[0].to_bits(),
-            self.resolution[1].to_bits(),
             self.mouse[0].to_bits(),
             self.mouse[1].to_bits(),
+            self.aspect.to_bits(),
+            0,
             self.zoom.to_bits(),
             self.arr_len as u32,
             self.fractal,

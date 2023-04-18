@@ -1,6 +1,6 @@
 struct ShaderDataUniforms {
-  resolution: vec2<f32>,
   mouse: vec2<f32>,
+  aspect: vec2<f32>,
   zoom: f32,
   arr_len: i32,
   fractal: u32,
@@ -64,9 +64,11 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
 
 @fragment
 fn main(in: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = in.uv - (uniforms.resolution * .5);
-
-    let col = fractal(uv) - uniforms.zoom;
+    //UV ∈ ((-1;-1); (1;1))
+    var uv = (in.uv * 2.0) - 1.0;
+    uv.x = uv.x * uniforms.aspect.x;
+    
+    let col = fractal(uv);
 
     return col;
 }
