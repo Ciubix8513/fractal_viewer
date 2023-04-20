@@ -180,6 +180,18 @@ fn main() {
                             )
                             .copy_from_slice(bytemuck::cast_slice(&data));
 
+                        let colors: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+                        staging_belt
+                            .write_buffer(
+                                &mut encoder,
+                                &scene.storage_buffer,
+                                0,
+                                wgpu::BufferSize::new((colors.len() * 4) as wgpu::BufferAddress)
+                                    .unwrap(),
+                                &device,
+                            )
+                            .copy_from_slice(bytemuck::cast_slice(&colors));
+
                         {
                             let mut render_pass = scene.clear(&view, &mut encoder, Color::WHITE);
                             render_pass.set_bind_group(0, &scene.bind_group, &[]);

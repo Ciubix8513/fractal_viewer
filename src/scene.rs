@@ -18,7 +18,7 @@ pub struct ShaderDataUniforms {
     pub msaa: u32,
 }
 impl ShaderDataUniforms {
-    pub fn to_uniform_data(self) -> [u32; 2 + 7 + 1 ] {
+    pub fn to_uniform_data(self) -> [u32; 2 + 7 + 1] {
         [
             self.mouse[0].to_bits(),
             self.mouse[1].to_bits(),
@@ -38,15 +38,17 @@ pub struct Scene {
     pipeline: RenderPipeline,
     pub bind_group: BindGroup,
     pub buffer: Buffer,
+    pub storage_buffer: Buffer,
     // uniforms: ShaderDataUniforms,
 }
 
 impl Scene {
     pub fn new(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> Scene {
-        let (pipeline, buffer, bind_group) = build_pipeline(device, texture_format);
+        let (pipeline, buffer, storage_buffer, bind_group) = build_pipeline(device, texture_format);
         Scene {
             pipeline,
             buffer,
+            storage_buffer,
             bind_group,
         }
     }
@@ -86,7 +88,7 @@ impl Scene {
 fn build_pipeline(
     device: &wgpu::Device,
     texture_format: wgpu::TextureFormat,
-) -> (RenderPipeline, Buffer, BindGroup) {
+) -> (RenderPipeline, Buffer, Buffer, BindGroup) {
     //Shaders
     let (vs_module, fs_module) = (
         device.create_shader_module(wgpu::include_wgsl!("shader/vert.wgsl")),
@@ -95,32 +97,58 @@ fn build_pipeline(
 
     //Uniform definition
     let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: None,
+        label: Some("Uniform"),
         contents: bytemuck::cast_slice(&[ShaderDataUniforms::default()]),
+        // contents: &[],
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    });
+
+    let storage_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("Storage"),
+        //256 floats = 64 vec4s = 64 colors
+        contents: bytemuck::cast_slice(&[0.0; 256]),
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
     });
 
     let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: None,
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
             },
-            count: None,
-        }],
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
     });
 
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: None,
         layout: &bind_group_layout,
-        entries: &[wgpu::BindGroupEntry {
-            binding: 0,
-            resource: uniform_buffer.as_entire_binding(),
-        }],
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: storage_buffer.as_entire_binding(),
+            },
+        ],
     });
 
     //Pipeline layout creation
@@ -167,6 +195,7 @@ fn build_pipeline(
             multiview: None,
         }),
         uniform_buffer,
+        storage_buffer,
         bind_group,
     )
 }
