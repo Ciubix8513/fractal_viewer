@@ -45,7 +45,10 @@ fn main() {
         (
             surface
                 .get_supported_formats(&adapter)
-                .first()
+                //This fix may not work consistently on all devices, so I need to come up with
+                //something better, cause srgb is fucking BS 
+                //.first()
+                .last()
                 .copied()
                 .expect("Get preferred format"),
             adapter
@@ -79,6 +82,7 @@ fn main() {
     //A buffer for transferring things to and from the GPU memory
     let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
+    println!("{:#?}",format);
     let scene = Scene::new(&device, format);
     let controls = Controls::new();
 
@@ -166,6 +170,8 @@ fn main() {
                         let size = window.inner_size();
                         let data = scene::ShaderDataUniforms {
                             aspect: size.width as f32 / size.height as f32,
+                            color_num: 200,
+                            arr_len: 5,
                             ..Default::default()
                         }
                         .to_uniform_data();
@@ -180,7 +186,29 @@ fn main() {
                             )
                             .copy_from_slice(bytemuck::cast_slice(&data));
 
-                        let colors: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+                        //The trans flag colors uwu 🏳️‍⚧️
+                        let colors: [f32; 20] = [
+                            85.0 / 255.0,
+                            205.0 / 255.0,
+                            252.0 / 255.0,
+                            1.0,
+                            247.0 / 255.0,
+                            168.0 / 255.0,
+                            184.0 / 255.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            1.0,
+                            247.0 / 255.0,
+                            168.0 / 255.0,
+                            184.0 / 255.0,
+                            1.0,
+                            85.0 / 255.0,
+                            205.0 / 255.0,
+                            252.0 / 255.0,
+                            1.0,
+                        ];
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
@@ -193,7 +221,7 @@ fn main() {
                             .copy_from_slice(bytemuck::cast_slice(&colors));
 
                         {
-                            let mut render_pass = scene.clear(&view, &mut encoder, Color::WHITE);
+                            let mut render_pass = scene.clear(&view, &mut encoder, Color::BLACK);
                             render_pass.set_bind_group(0, &scene.bind_group, &[]);
                             scene.draw(&mut render_pass);
                         }
