@@ -10,7 +10,7 @@ pub struct ShaderDataUniforms {
     pub aspect: f32,
     pub dummy: f32,
     pub zoom: f32,
-    pub arr_len: i32,
+    pub arr_len: u32,
     pub fractal: u32,
     pub max_iter: u32,
     pub color_num: u32,
@@ -38,7 +38,6 @@ pub struct Scene {
     pub bind_group: BindGroup,
     pub buffer: Buffer,
     pub storage_buffer: Buffer,
-    // uniforms: ShaderDataUniforms,
 }
 
 impl Scene {

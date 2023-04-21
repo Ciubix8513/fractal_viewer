@@ -45,7 +45,7 @@ fn main() {
             surface
                 .get_supported_formats(&adapter)
                 //This fix may not work consistently on all devices, so I need to come up with
-                //something better, cause srgb is fucking BS 
+                //something better, cause srgb is fucking BS
                 //.first()
                 .last()
                 .copied()
@@ -81,7 +81,7 @@ fn main() {
     //A buffer for transferring things to and from the GPU memory
     let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
 
-    println!("{:#?}",format);
+    println!("{:#?}", format);
     let scene = Scene::new(&device, format);
     let controls = Controls::new();
 
@@ -95,7 +95,7 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Wait;
 
         match event {
-            Event::WindowEvent { event, ..} => {
+            Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {
                         cursor_position = position;
@@ -167,57 +167,36 @@ fn main() {
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
                         let size = window.inner_size();
-                        let data = scene::ShaderDataUniforms {
+
+                        let program = state.program();
+
+                        let raw_data = scene::ShaderDataUniforms {
                             aspect: size.width as f32 / size.height as f32,
                             color_num: 200,
-                            arr_len: 5,
+                            arr_len: program.colors.len() as u32,
                             ..Default::default()
-                        }
-                        .to_uniform_data();
+                        }. to_uniform_data();
+                        let raw_colors = program.get_colors_raw();
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
                                 &scene.buffer,
                                 0,
-                                wgpu::BufferSize::new((data.len() * 4) as wgpu::BufferAddress)
+                                wgpu::BufferSize::new((raw_data.len() * 4) as wgpu::BufferAddress)
                                     .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(bytemuck::cast_slice(&data));
-
-                        //The trans flag colors uwu 🏳️‍⚧️
-                        let colors: [f32; 20] = [
-                            85.0 / 255.0,
-                            205.0 / 255.0,
-                            252.0 / 255.0,
-                            1.0,
-                            247.0 / 255.0,
-                            168.0 / 255.0,
-                            184.0 / 255.0,
-                            1.0,
-                            1.0,
-                            1.0,
-                            1.0,
-                            1.0,
-                            247.0 / 255.0,
-                            168.0 / 255.0,
-                            184.0 / 255.0,
-                            1.0,
-                            85.0 / 255.0,
-                            205.0 / 255.0,
-                            252.0 / 255.0,
-                            1.0,
-                        ];
+                            .copy_from_slice(bytemuck::cast_slice(&raw_data));
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
                                 &scene.storage_buffer,
                                 0,
-                                wgpu::BufferSize::new((colors.len() * 4) as wgpu::BufferAddress)
+                                wgpu::BufferSize::new((raw_colors.len() * 4 ) as wgpu::BufferAddress)
                                     .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(bytemuck::cast_slice(&colors));
+                            .copy_from_slice(bytemuck::cast_slice(&raw_colors));
 
                         {
                             let mut render_pass = scene.clear(&view, &mut encoder);
