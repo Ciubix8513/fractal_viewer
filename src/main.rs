@@ -1,3 +1,4 @@
+use bytemuck::cast_slice;
 use controls::Controls;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{conversion, futures, program, renderer, winit, Color, Debug, Size};
@@ -79,9 +80,11 @@ fn main() {
     let mut resized = false;
 
     //A buffer for transferring things to and from the GPU memory
-    let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
+    //Assuming the maximum number of colors is 64 the size needs to be 40(uniforms) + 16 * 64 = 1064
+    //I'm going to go for 1.5k just in case and cause it's a nicer number
+    let mut staging_belt = wgpu::util::StagingBelt::new(1536);
 
-    println!("{:#?}", format);
+    println!("Format is {:#?}", format);
     let scene = Scene::new(&device, format);
     let controls = Controls::new();
 
@@ -100,7 +103,6 @@ fn main() {
                     WindowEvent::CursorMoved { position, .. } => {
                         cursor_position = position;
                     }
-
                     WindowEvent::ModifiersChanged(new_modifiers) => {
                         modifiers = new_modifiers;
                     }
@@ -160,7 +162,7 @@ fn main() {
                             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                                 label: None,
                             });
-                        // let program = state.program();
+                        let program = state.program();
 
                         let view = frame
                             .texture
@@ -168,15 +170,15 @@ fn main() {
 
                         let size = window.inner_size();
 
-                        let program = state.program();
-
+                        let raw_colors = program.get_colors_raw();
                         let raw_data = scene::ShaderDataUniforms {
                             aspect: size.width as f32 / size.height as f32,
-                            color_num: 200,
-                            arr_len: program.colors.len() as u32,
+                            num_colors: 200,
+                            arr_len: (raw_colors.len() / 4) as u32,
                             ..Default::default()
-                        }. to_uniform_data();
-                        let raw_colors = program.get_colors_raw();
+                        }
+                        .to_uniform_data();
+
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
@@ -186,17 +188,19 @@ fn main() {
                                     .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(bytemuck::cast_slice(&raw_data));
+                            .copy_from_slice(cast_slice(&raw_data));
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
                                 &scene.storage_buffer,
                                 0,
-                                wgpu::BufferSize::new((raw_colors.len() * 4 ) as wgpu::BufferAddress)
-                                    .unwrap(),
+                                wgpu::BufferSize::new(
+                                    (raw_colors.len() * 4) as wgpu::BufferAddress,
+                                )
+                                .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(bytemuck::cast_slice(&raw_colors));
+                            .copy_from_slice(cast_slice(&raw_colors));
 
                         {
                             let mut render_pass = scene.clear(&view, &mut encoder);

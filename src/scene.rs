@@ -13,21 +13,22 @@ pub struct ShaderDataUniforms {
     pub arr_len: u32,
     pub fractal: u32,
     pub max_iter: u32,
-    pub color_num: u32,
+    pub num_colors: u32,
     pub msaa: u32,
 }
 impl ShaderDataUniforms {
-    pub fn to_uniform_data(self) -> [u32; 2 + 7 + 1] {
+    pub fn to_uniform_data(self) -> [u32; 10] {
         [
             self.mouse[0].to_bits(),
             self.mouse[1].to_bits(),
             self.aspect.to_bits(),
+            //Padding cause it wasn't working w/o it
             0,
             self.zoom.to_bits(),
             self.arr_len as u32,
             self.fractal,
             self.max_iter,
-            self.color_num,
+            self.num_colors,
             self.msaa,
         ]
     }
@@ -92,14 +93,14 @@ fn build_pipeline(
         device.create_shader_module(wgpu::include_wgsl!("shader/frag.wgsl")),
     );
 
-    //Uniform definition
+    //Uniform buffer creation 
     let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Uniform"),
         contents: bytemuck::cast_slice(&[ShaderDataUniforms::default()]),
-        // contents: &[],
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
     });
 
+    //Storage buffer for the color array
     let storage_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Storage"),
         //256 floats = 64 vec4s = 64 colors

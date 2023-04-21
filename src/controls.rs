@@ -27,7 +27,7 @@ impl std::fmt::Display for Fractals {
     }
 }
 
-#[derive(Default,Clone)]
+#[derive(Default, Clone)]
 pub struct Controls {
     ui_open: bool,
     pub current_fractal: Fractals,
