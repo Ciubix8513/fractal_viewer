@@ -1,12 +1,11 @@
-#![allow(dead_code, unused)]
 use controls::Controls;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{conversion, futures, program, renderer, winit, Clipboard, Color, Debug, Size};
+use iced_winit::{conversion, futures, program, renderer, winit, Color, Debug, Size};
 use scene::Scene;
 use winit::{
     dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::ControlFlow,
 };
 
 mod controls;
@@ -96,7 +95,7 @@ fn main() {
         *control_flow = winit::event_loop::ControlFlow::Wait;
 
         match event {
-            Event::WindowEvent { window_id, event } => {
+            Event::WindowEvent { event, ..} => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {
                         cursor_position = position;
@@ -161,7 +160,7 @@ fn main() {
                             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                                 label: None,
                             });
-                        let program = state.program();
+                        // let program = state.program();
 
                         let view = frame
                             .texture
@@ -221,7 +220,7 @@ fn main() {
                             .copy_from_slice(bytemuck::cast_slice(&colors));
 
                         {
-                            let mut render_pass = scene.clear(&view, &mut encoder, Color::BLACK);
+                            let mut render_pass = scene.clear(&view, &mut encoder);
                             render_pass.set_bind_group(0, &scene.bind_group, &[]);
                             scene.draw(&mut render_pass);
                         }

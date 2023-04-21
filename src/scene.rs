@@ -1,6 +1,5 @@
 use bytemuck::{Pod, Zeroable};
 use iced_wgpu::wgpu::{self, util::DeviceExt, BindGroup, Buffer};
-use iced_winit::Color;
 use wgpu::RenderPipeline;
 
 //Make memory layout the same as in C
@@ -57,7 +56,6 @@ impl Scene {
         &self,
         target: &'a wgpu::TextureView,
         encoder: &'a mut wgpu::CommandEncoder,
-        background_color: Color,
     ) -> wgpu::RenderPass<'a> {
         encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
@@ -70,7 +68,7 @@ impl Scene {
                         r: 0.0,
                         g: 0.0,
                         b: 0.0,
-                        a: 0.0,
+                        a: 1.0,
                     }),
                     store: true,
                 },
@@ -173,9 +171,8 @@ fn build_pipeline(
                 targets: &[Some(wgpu::ColorTargetState {
                     format: texture_format,
                     blend: Some(wgpu::BlendState {
-                        //Blend in order to have TAA
-                        color: wgpu::BlendComponent::OVER,
-                        alpha: wgpu::BlendComponent::OVER,
+                        color: wgpu::BlendComponent::REPLACE,
+                        alpha: wgpu::BlendComponent::REPLACE,
                     }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],

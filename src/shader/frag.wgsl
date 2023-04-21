@@ -88,9 +88,5 @@ fn main(in: VertexOutput) -> @location(0) vec4<f32> {
     uv = uv * 1.25;
 
     let col = fractal(uv);
-
-  
-    //return vec4<f32>(1.0,0.0,0.0,1.0);
-    //let col = get_col(in.uv.y,1);
     return col;
 }
