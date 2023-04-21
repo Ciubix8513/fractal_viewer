@@ -173,7 +173,7 @@ fn main() {
                         let raw_colors = program.get_colors_raw();
                         let raw_data = scene::ShaderDataUniforms {
                             aspect: size.width as f32 / size.height as f32,
-                            num_colors: 200,
+                            num_colors: program.num_colors,
                             arr_len: (raw_colors.len() / 4) as u32,
                             ..Default::default()
                         }
