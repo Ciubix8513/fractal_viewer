@@ -175,6 +175,7 @@ fn main() {
                             aspect: size.width as f32 / size.height as f32,
                             num_colors: program.num_colors,
                             arr_len: (raw_colors.len() / 4) as u32,
+                            max_iter: program.num_iters,
                             ..Default::default()
                         }
                         .to_uniform_data();

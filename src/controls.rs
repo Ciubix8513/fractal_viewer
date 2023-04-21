@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use iced_wgpu::Color;
 use iced_winit::{
     alignment, column, row,
-    widget::{button, container, pick_list, slider},
+    widget::{button, container, pick_list, slider, text},
     Command, Length, Program,
 };
 
@@ -34,6 +34,7 @@ pub struct Controls {
     ui_open: bool,
     pub current_fractal: Fractals,
     pub colors: Vec<Color>,
+    pub num_iters : u32,
     pub num_colors: u32,
 }
 
@@ -42,6 +43,7 @@ pub enum Message {
     ToggleUi,
     ChangeFractal(Fractals),
     NumColorsChanged(u32),
+    NumItersChanged(u32),
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -79,6 +81,7 @@ impl Program for Controls {
             Message::ToggleUi => self.ui_open = !self.ui_open,
             Message::ChangeFractal(f) => self.current_fractal = f,
             Message::NumColorsChanged(value) => self.num_colors = value,
+            Message::NumItersChanged(value) => self.num_iters= value,
         }
         Command::none()
     }
@@ -106,8 +109,15 @@ impl Program for Controls {
                 self.num_colors,
                 Message::NumColorsChanged,
             );
+            let num_iters_slider = slider(
+                RangeInclusive::new(1, 2000),
+                self.num_iters,
+                Message::NumItersChanged,
+            );
 
-            row![column![close_button, fractal_list, num_colors_slider]]
+            let num_colors_label = text("Num colors");
+            let num_iters_label = text("Num iters");
+            row![column![close_button, fractal_list,num_iters_label, num_iters_slider,num_colors_label ,num_colors_slider]]
         };
         container(content)
             .width(Length::Fill)
