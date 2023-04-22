@@ -3,11 +3,11 @@ use std::ops::RangeInclusive;
 use iced_wgpu::Color;
 use iced_winit::{
     alignment, column, row,
-    widget::{button, container, pick_list, slider, text},
+    widget::{button, checkbox, container, pick_list, slider, text},
     Command, Length, Program,
 };
 
-#[derive(Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Debug, PartialEq, Eq, Copy)]
 pub enum Fractals {
     #[default]
     Mandelbrot = 1,
@@ -34,8 +34,9 @@ pub struct Controls {
     ui_open: bool,
     pub current_fractal: Fractals,
     pub colors: Vec<Color>,
-    pub num_iters : u32,
+    pub num_iters: u32,
     pub num_colors: u32,
+    pub smooth_enabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +45,7 @@ pub enum Message {
     ChangeFractal(Fractals),
     NumColorsChanged(u32),
     NumItersChanged(u32),
+    ToggleSmooth(bool),
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -61,6 +63,7 @@ impl Controls {
                 Color::from_rgba(247.0 / 255.0, 168.0 / 255.0, 184.0 / 255.0, 1.0),
                 Color::from_rgba(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0, 1.0),
             ],
+            num_iters: 1000,
             num_colors: 200,
             ..Default::default()
         }
@@ -81,7 +84,8 @@ impl Program for Controls {
             Message::ToggleUi => self.ui_open = !self.ui_open,
             Message::ChangeFractal(f) => self.current_fractal = f,
             Message::NumColorsChanged(value) => self.num_colors = value,
-            Message::NumItersChanged(value) => self.num_iters= value,
+            Message::NumItersChanged(value) => self.num_iters = value,
+            Message::ToggleSmooth(value) => self.smooth_enabled = value,
         }
         Command::none()
     }
@@ -99,11 +103,8 @@ impl Program for Controls {
                 Fractals::Feather,
                 Fractals::Eye,
             ];
-            let fractal_list = pick_list(
-                fractals,
-                Some(self.current_fractal.clone()),
-                Message::ChangeFractal,
-            );
+            let fractal_list =
+                pick_list(fractals, Some(self.current_fractal), Message::ChangeFractal);
             let num_colors_slider = slider(
                 RangeInclusive::new(1, 1000),
                 self.num_colors,
@@ -117,7 +118,21 @@ impl Program for Controls {
 
             let num_colors_label = text("Num colors");
             let num_iters_label = text("Num iters");
-            row![column![close_button, fractal_list,num_iters_label, num_iters_slider,num_colors_label ,num_colors_slider]]
+
+            let smooth_toggle = checkbox("Smooth?", self.smooth_enabled, Message::ToggleSmooth);
+
+            row![column![
+                close_button,
+                fractal_list,
+                num_iters_label,
+                num_iters_slider,
+                num_colors_label,
+                num_colors_slider,
+                smooth_toggle
+            ]
+            .spacing(5)]
+            .width(200)
+            .padding(10)
         };
         container(content)
             .width(Length::Fill)
