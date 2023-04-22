@@ -66,6 +66,23 @@ fn mandelbrot(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
     }
     return complex_square(z) + c;
 }
+fn burning_ship(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
+    let z1 = abs(z);
+    return complex_square(z1) + c;
+}
+fn tricorn(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
+    let z1 = z * vec2<f32>(1.0, -1.0);
+    return complex_square(z1) + c;
+}
+fn feather(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
+    return complex_div(complex_cube(z), (vec2<f32>(1.0, 0.0) + (z * z))) + c;
+}
+fn eye(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
+    if length(c) > 5.0 {
+        return vec2<f32>(6.9, 420.0);
+    }
+    return complex_square(complex_div(z, c)) + c;
+}
 
 fn get_col(coord: f32, col_num: i32) -> vec4<f32> {
     if col_num == 1 {
@@ -97,7 +114,17 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
 
     while dot(coords, coords) <= max_dot && iter < max_iteration {
 
-        coords = mandelbrot(coords, C);
+        if (uniforms.fractal & 1u) == 1u {
+            coords = mandelbrot(coords, C);
+        } else if (uniforms.fractal & 2u) == 2u {
+            coords = burning_ship(coords, C);
+        } else if (uniforms.fractal & 4u) == 4u {
+            coords = tricorn(coords, C);
+        } else if (uniforms.fractal & 8u) == 8u {
+            coords = feather(coords, C);
+        } else if (uniforms.fractal & 16u) == 16u {
+            coords = eye(coords, C);
+        }
         iter += 1u;
     }
     var i = f32(iter);
