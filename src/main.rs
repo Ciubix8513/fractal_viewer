@@ -177,7 +177,11 @@ fn main() {
                             arr_len: (raw_colors.len() / 4) as u32,
                             max_iter: program.num_iters,
                             fractal: program.current_fractal as u32
-                                | if program.smooth_enabled { 1024 } else { 0 },
+                                | if program.smooth_enabled {
+                                    2147483648
+                                } else {
+                                    0
+                                },
                             ..Default::default()
                         }
                         .to_uniform_data();

@@ -108,8 +108,8 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
     var coords = vec2<f32>(0.0);
     var iter = 0u;
 
-    let max_dot = 5.0;
-
+    var max_dot = 5.0;
+    if (uniforms.fractal * 8u) == 8u || (uniforms.fractal & 16u) == 16u {max_dot = 2000.0;}
     let max_iteration = uniforms.max_iter;
 
     while dot(coords, coords) <= max_dot && iter < max_iteration {
@@ -130,7 +130,7 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
     var i = f32(iter);
     if coords.x == 6.9 && coords.y == 420.0 {
         i = f32(max_iteration);
-    } else if (uniforms.fractal & 1024u) != 0u {
+    } else if (uniforms.fractal & 2147483648u) != 0u {
         i = i - log2(log2(dot(coords, coords))) + 4.0;
     }
     return get_color(C, i, max_iteration);
