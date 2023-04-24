@@ -143,6 +143,14 @@ fn main(in: VertexOutput) -> @location(0) vec4<f32> {
     uv.x = (uv.x * uniforms.aspect.x) - .5;
     uv = uv * 1.25;
 
-    let col = fractal(uv);
-    return col;
+    var col = vec4<f32>(0.0);
+    let msaa = f32(uniforms.msaa);
+
+    for (var i = 0.0; i < msaa; i += 1.0) {
+        let dxy = vec2<f32>(rand(i * .54321), rand(i * .12345)) / 1000.0;
+        let c = (uv + dxy) * vec2<f32>(1.0, -1.0);
+        col += fractal(c);
+    }
+
+    return col / msaa;
 }

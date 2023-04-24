@@ -182,6 +182,7 @@ fn main() {
                                 } else {
                                     0
                                 },
+                            msaa: program.msaa,
                             ..Default::default()
                         }
                         .to_uniform_data();

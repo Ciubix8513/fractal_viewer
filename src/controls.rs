@@ -37,6 +37,7 @@ pub struct Controls {
     pub num_iters: u32,
     pub num_colors: u32,
     pub smooth_enabled: bool,
+    pub msaa: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +47,7 @@ pub enum Message {
     NumColorsChanged(u32),
     NumItersChanged(u32),
     ToggleSmooth(bool),
+    MsaaChanged(u32),
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -65,6 +67,7 @@ impl Controls {
             ],
             num_iters: 1000,
             num_colors: 200,
+            msaa: 1,
             ..Default::default()
         }
     }
@@ -86,6 +89,7 @@ impl Program for Controls {
             Message::NumColorsChanged(value) => self.num_colors = value,
             Message::NumItersChanged(value) => self.num_iters = value,
             Message::ToggleSmooth(value) => self.smooth_enabled = value,
+            Message::MsaaChanged(value) => self.msaa = value,
         }
         Command::none()
     }
@@ -115,9 +119,11 @@ impl Program for Controls {
                 self.num_iters,
                 Message::NumItersChanged,
             );
+            let msaa_slider = slider(RangeInclusive::new(1, 8), self.msaa, Message::MsaaChanged);
 
             let num_colors_label = text("Num colors");
             let num_iters_label = text("Num iters");
+            let msaa_label = text("Anti Aliasing");
 
             let smooth_toggle = checkbox("Smooth?", self.smooth_enabled, Message::ToggleSmooth);
 
@@ -128,6 +134,8 @@ impl Program for Controls {
                 num_iters_slider,
                 num_colors_label,
                 num_colors_slider,
+                msaa_label,
+                msaa_slider,
                 smooth_toggle
             ]
             .spacing(5)]
