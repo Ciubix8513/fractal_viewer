@@ -3,6 +3,7 @@ use controls::Controls;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{conversion, futures, program, renderer, winit, Color, Debug, Size};
 use scene::Scene;
+use std::time::Instant;
 use winit::{
     dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
@@ -11,6 +12,16 @@ use winit::{
 
 mod controls;
 mod scene;
+
+fn lerp<T>(a: T, b: T, t: f32) -> T
+where
+    T: std::ops::Add<Output = T>
+        + std::ops::Mul<f32, Output = T>
+        + std::ops::Sub<Output = T>
+        + Copy,
+{
+    a + (b - a) * t
+}
 
 fn main() {
     let event_loop = winit::event_loop::EventLoop::new();
@@ -93,6 +104,10 @@ fn main() {
 
     let mut state =
         program::State::new(controls, viewport.logical_size(), &mut renderer, &mut debug);
+    let mut zoom = 1.0;
+    let mut zoom_dst = zoom;
+
+    let mut last_frame_time = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Wait;
@@ -112,6 +127,12 @@ fn main() {
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }
+                    WindowEvent::MouseWheel { delta, .. } => match delta {
+                        winit::event::MouseScrollDelta::LineDelta(_, y) => {
+                            zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01)
+                        }
+                        winit::event::MouseScrollDelta::PixelDelta(_) => todo!(),
+                    },
                     _ => {}
                 }
                 if let Some(event) =
@@ -158,6 +179,13 @@ fn main() {
                 }
                 match surface.get_current_texture() {
                     Ok(frame) => {
+                        //Delta time calculation (Thank you chat gpt)
+                        let current_time = Instant::now();
+                        let delta_time = current_time.duration_since(last_frame_time).as_secs_f32();
+                        last_frame_time = current_time;
+
+                        zoom = lerp(zoom, zoom_dst, delta_time);
+
                         let mut encoder =
                             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                                 label: None,
@@ -183,6 +211,7 @@ fn main() {
                                     0
                                 },
                             msaa: program.msaa,
+                            zoom,
                             ..Default::default()
                         }
                         .to_uniform_data();

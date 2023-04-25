@@ -142,6 +142,7 @@ fn main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv = (in.uv * 2.0) - 1.0;
     uv.x = (uv.x * uniforms.aspect.x) - .5;
     uv = uv * 1.25;
+    uv = uv / uniforms.zoom;
 
     var col = vec4<f32>(0.0);
     let msaa = f32(uniforms.msaa);
