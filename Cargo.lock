@@ -638,6 +638,7 @@ dependencies = [
  "bytemuck",
  "iced_wgpu",
  "iced_winit",
+ "once_cell",
 ]
 
 [[package]]

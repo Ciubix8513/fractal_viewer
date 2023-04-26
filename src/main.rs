@@ -1,9 +1,21 @@
 use bytemuck::cast_slice;
 use controls::Controls;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{conversion, futures, program, renderer, winit, Color, Debug, Size};
+use iced_winit::{
+    conversion,
+    futures::{self},
+    program, renderer, winit, Color, Debug, Size,
+};
+use once_cell::sync::Lazy;
 use scene::Scene;
-use std::time::Instant;
+use std::{
+    sync::{
+        mpsc::{self, channel, Receiver},
+        Arc, Mutex,
+    },
+    thread,
+    time::Instant,
+};
 use winit::{
     dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
@@ -22,6 +34,8 @@ where
 {
     a + (b - a) * t
 }
+
+static RECIEVER: Lazy<Arc<Mutex<Option<Receiver<()>>>>> = Lazy::new(|| Arc::new(Mutex::new(None)));
 
 fn main() {
     let event_loop = winit::event_loop::EventLoop::new();
@@ -109,6 +123,10 @@ fn main() {
 
     let mut last_frame_time = Instant::now();
 
+    //Just to send a ping
+    let (tx, rx) = channel::<()>();
+    *RECIEVER.lock().unwrap() = Some(rx);
+
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Wait;
 
@@ -129,7 +147,16 @@ fn main() {
                     }
                     WindowEvent::MouseWheel { delta, .. } => match delta {
                         winit::event::MouseScrollDelta::LineDelta(_, y) => {
-                            zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01)
+                            zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01);
+                            //Spawn a thread to request redraws
+                            thread::spawn(|| {
+                                let r = RECIEVER.lock().unwrap().as_mut().unwrap().try_recv();
+                                //Received a ping ending the thread
+                                if r.is_ok() {
+                                    return;
+                                }
+                                //Otherwise force redraw
+                            });
                         }
                         winit::event::MouseScrollDelta::PixelDelta(_) => todo!(),
                     },
