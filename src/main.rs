@@ -2,19 +2,19 @@ use bytemuck::cast_slice;
 use controls::Controls;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{
-    conversion,
-    futures::{self},
-    program, renderer, winit, Color, Debug, Size,
+    conversion, futures, program, renderer,
+    winit::{self, window::Window},
+    Color, Debug, Size,
 };
 use once_cell::sync::Lazy;
 use scene::Scene;
 use std::{
     sync::{
-        mpsc::{self, channel, Receiver},
+        mpsc::{channel, Receiver},
         Arc, Mutex,
     },
     thread,
-    time::Instant,
+    time::{Duration, Instant},
 };
 use winit::{
     dpi::PhysicalPosition,
@@ -36,10 +36,11 @@ where
 }
 
 static RECIEVER: Lazy<Arc<Mutex<Option<Receiver<()>>>>> = Lazy::new(|| Arc::new(Mutex::new(None)));
+static WINDOW: Lazy<Arc<Mutex<Option<Window>>>> = Lazy::new(|| Arc::new(Mutex::new(None)));
 
 fn main() {
     let event_loop = winit::event_loop::EventLoop::new();
-    let window = winit::window::Window::new(&event_loop).unwrap();
+    let window = Window::new(&event_loop).unwrap();
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
         Size::new(physical_size.width, physical_size.height),
@@ -125,7 +126,10 @@ fn main() {
 
     //Just to send a ping
     let (tx, rx) = channel::<()>();
+    //Prepare data for multithreading
     *RECIEVER.lock().unwrap() = Some(rx);
+    *WINDOW.lock().unwrap() = Some(window);
+    let mut zooming = false;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Wait;
@@ -148,23 +152,31 @@ fn main() {
                     WindowEvent::MouseWheel { delta, .. } => match delta {
                         winit::event::MouseScrollDelta::LineDelta(_, y) => {
                             zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01);
+                            zooming = true;
                             //Spawn a thread to request redraws
-                            thread::spawn(|| {
+                            thread::spawn(|| loop {
+                                if false {
+                                    break;
+                                }
                                 let r = RECIEVER.lock().unwrap().as_mut().unwrap().try_recv();
-                                //Received a ping ending the thread
                                 if r.is_ok() {
                                     return;
                                 }
-                                //Otherwise force redraw
+                                WINDOW.lock().unwrap().as_mut().unwrap().request_redraw();
+                                thread::sleep(Duration::from_secs_f32(1.0 / 60.0));
                             });
+                            //Reset delta time to avoid jumps
+                            last_frame_time = Instant::now();
                         }
                         winit::event::MouseScrollDelta::PixelDelta(_) => todo!(),
                     },
                     _ => {}
                 }
-                if let Some(event) =
-                    iced_winit::conversion::window_event(&event, window.scale_factor(), modifiers)
-                {
+                if let Some(event) = iced_winit::conversion::window_event(
+                    &event,
+                    WINDOW.lock().unwrap().as_mut().unwrap().scale_factor(),
+                    modifiers,
+                ) {
                     state.queue_event(event);
                 }
             }
@@ -181,15 +193,15 @@ fn main() {
                         &mut clipboard,
                         &mut debug,
                     );
-                    window.request_redraw();
+                    WINDOW.lock().unwrap().as_mut().unwrap().request_redraw();
                 }
             }
             Event::RedrawRequested(_) => {
                 if resized {
-                    let size = window.inner_size();
+                    let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                     viewport = Viewport::with_physical_size(
                         Size::new(size.width, size.height),
-                        window.scale_factor(),
+                        WINDOW.lock().unwrap().as_ref().unwrap().scale_factor(),
                     );
                     surface.configure(
                         &device,
@@ -211,7 +223,13 @@ fn main() {
                         let delta_time = current_time.duration_since(last_frame_time).as_secs_f32();
                         last_frame_time = current_time;
 
-                        zoom = lerp(zoom, zoom_dst, delta_time);
+                        if zooming {
+                            zoom = lerp(zoom, zoom_dst, delta_time * 1.2);
+                            if f32::abs(zoom_dst - zoom) < 0.05 {
+                                zooming = false;
+                                tx.send(()).unwrap();
+                            }
+                        }
 
                         let mut encoder =
                             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -223,7 +241,7 @@ fn main() {
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
-                        let size = window.inner_size();
+                        let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
 
                         let raw_colors = program.get_colors_raw();
                         let raw_data = scene::ShaderDataUniforms {
