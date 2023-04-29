@@ -6,7 +6,8 @@ use wgpu::RenderPipeline;
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable, Default)]
 pub struct ShaderDataUniforms {
-    pub mouse: [f32; 2],
+    pub position: [f32; 2],
+    pub resolution: [u32; 2],
     pub aspect: f32,
     pub dummy: f32,
     pub zoom: f32,
@@ -17,15 +18,17 @@ pub struct ShaderDataUniforms {
     pub msaa: u32,
 }
 impl ShaderDataUniforms {
-    pub fn to_uniform_data(self) -> [u32; 10] {
+    pub fn to_uniform_data(self) -> [u32; 12] {
         [
-            self.mouse[0].to_bits(),
-            self.mouse[1].to_bits(),
+            self.position[0].to_bits(),
+            self.position[1].to_bits(),
+            self.resolution[0],
+            self.resolution[1],
             self.aspect.to_bits(),
             //Padding cause it wasn't working w/o it
             0,
             self.zoom.to_bits(),
-            self.arr_len as u32,
+            self.arr_len,
             self.fractal,
             self.max_iter,
             self.num_colors,
@@ -93,7 +96,7 @@ fn build_pipeline(
         device.create_shader_module(wgpu::include_wgsl!("shader/frag.wgsl")),
     );
 
-    //Uniform buffer creation 
+    //Uniform buffer creation
     let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("Uniform"),
         contents: bytemuck::cast_slice(&[ShaderDataUniforms::default()]),
@@ -113,7 +116,7 @@ fn build_pipeline(
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
+                visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
