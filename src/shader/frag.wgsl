@@ -141,10 +141,6 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
 fn main(in: VertexOutput) -> @location(0) vec4<f32> {
     var uv = in.uv - vec2<f32>(uniforms.resolution) * 0.5;
 
-    //Red debug circles
-    if length(abs(uv) - vec2<f32>(1.0, 1.0)) < .1 {
-        return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-    }
 
     var col = vec4<f32>(0.0);
     let msaa = f32(uniforms.msaa);

@@ -134,7 +134,7 @@ fn main() {
     let mut state =
         program::State::new(controls, viewport.logical_size(), &mut renderer, &mut debug);
 
-    let mut zoom = 100.0;
+    let mut zoom = 500.0;
     let mut zoom_dst = zoom;
     let mut zooming = false;
     let mut zoom_dst_position = [0.0, 0.0];
