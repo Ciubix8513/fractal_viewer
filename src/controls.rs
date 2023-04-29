@@ -1,7 +1,4 @@
-use std::{
-    ops::RangeInclusive,
-    sync::{Arc, Mutex},
-};
+use std::ops::RangeInclusive;
 
 use iced_wgpu::Color;
 use iced_winit::{
@@ -23,11 +20,11 @@ pub enum Fractals {
 impl std::fmt::Display for Fractals {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Fractals::Mandelbrot => write!(f, "Mandelbrot set"),
-            Fractals::BurningShip => write!(f, "Burning ship"),
-            Fractals::Tricorn => write!(f, "Tricorn"),
-            Fractals::Feather => write!(f, "Feather"),
-            Fractals::Eye => write!(f, "Eye"),
+            Self::Mandelbrot => write!(f, "Mandelbrot set"),
+            Self::BurningShip => write!(f, "Burning ship"),
+            Self::Tricorn => write!(f, "Tricorn"),
+            Self::Feather => write!(f, "Feather"),
+            Self::Eye => write!(f, "Eye"),
         }
     }
 }
@@ -41,8 +38,6 @@ pub struct Controls {
     pub num_colors: u32,
     pub smooth_enabled: bool,
     pub msaa: u32,
-    pub position: Arc<Mutex<Vec<f32>>>,
-    pub position_dst: Arc<Mutex<Vec<f32>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -60,8 +55,8 @@ fn color_raw(color: &Color) -> Vec<f32> {
 }
 
 impl Controls {
-    pub fn new() -> Controls {
-        Controls {
+    pub fn new() -> Self {
+        Self {
             //The trans flag colors uwu 🏳️‍⚧️
             colors: vec![
                 Color::from_rgba(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0, 1.0),
@@ -132,29 +127,20 @@ impl Program for Controls {
 
             let smooth_toggle = checkbox("Smooth?", self.smooth_enabled, Message::ToggleSmooth);
 
-            let position = text(format!("position: {:#?}", self.position.lock().unwrap()));
-            let position_dst = text(format!(
-                "position dst: {:#?}",
-                self.position_dst.lock().unwrap()
-            ));
-
-            row![
-                column![position, position_dst],
-                column![
-                    close_button,
-                    fractal_list,
-                    num_iters_label,
-                    num_iters_slider,
-                    num_colors_label,
-                    num_colors_slider,
-                    msaa_label,
-                    msaa_slider,
-                    smooth_toggle
-                ]
-                .spacing(5)
+            row![column![
+                close_button,
+                fractal_list,
+                num_iters_label,
+                num_iters_slider,
+                num_colors_label,
+                num_colors_slider,
+                msaa_label,
+                msaa_slider,
+                smooth_toggle
             ]
+            .spacing(10)]
             .spacing(20)
-            .width(500)
+            .width(200)
             .padding(10)
         };
         container(content)

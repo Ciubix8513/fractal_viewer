@@ -45,13 +45,13 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> Scene {
+    pub fn new(device: &wgpu::Device, texture_format: wgpu::TextureFormat) -> Self {
         let (pipeline, buffer, storage_buffer, bind_group) = build_pipeline(device, texture_format);
-        Scene {
+        Self {
             pipeline,
+            bind_group,
             buffer,
             storage_buffer,
-            bind_group,
         }
     }
 

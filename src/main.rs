@@ -1,6 +1,4 @@
-use bytemuck::cast_slice;
-use controls::Controls;
-use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
+use iced_wgpu::{wgpu, Viewport};
 use iced_winit::{
     conversion, futures, program, renderer,
     winit::{self, window::Window},
@@ -124,15 +122,19 @@ fn main() {
 
     println!("Format is {:#?}", format);
     let scene = Scene::new(&device, format);
-    let controls = Controls::new();
+    let controls = controls::Controls::new();
 
     let mut debug = Debug::new();
-    let mut renderer = Renderer::new(Backend::new(&device, Settings::default(), format));
+    let mut renderer = iced_wgpu::Renderer::new(iced_wgpu::Backend::new(
+        &device,
+        iced_wgpu::Settings::default(),
+        format,
+    ));
 
     let mut state =
         program::State::new(controls, viewport.logical_size(), &mut renderer, &mut debug);
 
-    let mut zoom = 1000.0;
+    let mut zoom = 100.0;
     let mut zoom_dst = zoom;
     let mut zooming = false;
     let mut zoom_dst_position = [0.0, 0.0];
@@ -176,9 +178,9 @@ fn main() {
                             zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01);
                             let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                             zoom_dst_position = [
-                                ((cursor_position.x as f32 / size.width as f32) * 2.0 - 1.0),
+                                (cursor_position.x as f32 / size.width as f32).mul_add(2.0, -1.0),
                                 // / zoom,
-                                -((cursor_position.y as f32 / size.height as f32) * 2.0 - 1.0),
+                                (cursor_position.y as f32 / size.height as f32).mul_add(-2.0, 1.0),
                                 // / zoom,
                             ];
                             zooming = true;
@@ -187,8 +189,14 @@ fn main() {
                                 if false {
                                     break;
                                 }
-                                let r = RECIEVER.lock().unwrap().as_mut().unwrap().try_recv();
-                                if r.is_ok() {
+                                if RECIEVER
+                                    .lock()
+                                    .unwrap()
+                                    .as_mut()
+                                    .unwrap()
+                                    .try_recv()
+                                    .is_ok()
+                                {
                                     return;
                                 }
                                 WINDOW.lock().unwrap().as_mut().unwrap().request_redraw();
@@ -197,10 +205,10 @@ fn main() {
                         }
                         winit::event::MouseScrollDelta::PixelDelta(_) => todo!(),
                     },
-                    WindowEvent::MouseInput { button, .. } => match button {
-                        winit::event::MouseButton::Left => dragging = !dragging,
-                        _ => {}
-                    },
+                    WindowEvent::MouseInput {
+                        button: winit::event::MouseButton::Left,
+                        ..
+                    } => dragging = !dragging,
                     _ => {}
                 }
                 if let Some(event) = iced_winit::conversion::window_event(
@@ -279,9 +287,6 @@ fn main() {
                             });
                         let program = state.program();
 
-                        *program.position.lock().unwrap().as_mut() = position.to_vec();
-                        *program.position_dst.lock().unwrap().as_mut() = zoom_dst_position.to_vec();
-
                         let view = frame
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -317,7 +322,7 @@ fn main() {
                                     .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(cast_slice(&raw_data));
+                            .copy_from_slice(bytemuck::cast_slice(&raw_data));
                         staging_belt
                             .write_buffer(
                                 &mut encoder,
@@ -329,7 +334,7 @@ fn main() {
                                 .unwrap(),
                                 &device,
                             )
-                            .copy_from_slice(cast_slice(&raw_colors));
+                            .copy_from_slice(bytemuck::cast_slice(&raw_colors));
 
                         {
                             let mut render_pass = scene.clear(&view, &mut encoder);
