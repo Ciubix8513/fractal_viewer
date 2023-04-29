@@ -139,12 +139,9 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
 
 @fragment
 fn main(in: VertexOutput) -> @location(0) vec4<f32> {
-    // UV ∈ ((-1;-1); (1;1))
-    var uv = (in.uv * 2.0) - 1.0;
-    uv.x = (uv.x * uniforms.aspect.x);
-    uv = uv - uniforms.position;
-    uv = uv / uniforms.zoom;
+    var uv = in.uv - vec2<f32>(uniforms.resolution) * 0.5;
 
+    //Red debug circles
     if length(abs(uv) - vec2<f32>(1.0, 1.0)) < .1 {
         return vec4<f32>(1.0, 0.0, 0.0, 1.0);
     }
@@ -153,8 +150,8 @@ fn main(in: VertexOutput) -> @location(0) vec4<f32> {
     let msaa = f32(uniforms.msaa);
 
     for (var i = 0.0; i < msaa; i += 1.0) {
-        let dxy = vec2<f32>(rand(i * .54321), rand(i * .12345)) / 1000.0;
-        let c = (uv + dxy) * vec2<f32>(1.0, -1.0);
+        let dxy = vec2<f32>(rand(i * .54321), rand(i * .12345));
+        let c = ((uv + dxy) * vec2<f32>(1.0, -1.0) / uniforms.zoom) - uniforms.position;
         col += fractal(c);
     }
 

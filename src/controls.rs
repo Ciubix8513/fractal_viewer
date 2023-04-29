@@ -1,4 +1,7 @@
-use std::ops::RangeInclusive;
+use std::{
+    ops::RangeInclusive,
+    sync::{Arc, Mutex},
+};
 
 use iced_wgpu::Color;
 use iced_winit::{
@@ -38,6 +41,8 @@ pub struct Controls {
     pub num_colors: u32,
     pub smooth_enabled: bool,
     pub msaa: u32,
+    pub position: Arc<Mutex<Vec<f32>>>,
+    pub position_dst: Arc<Mutex<Vec<f32>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -127,19 +132,29 @@ impl Program for Controls {
 
             let smooth_toggle = checkbox("Smooth?", self.smooth_enabled, Message::ToggleSmooth);
 
-            row![column![
-                close_button,
-                fractal_list,
-                num_iters_label,
-                num_iters_slider,
-                num_colors_label,
-                num_colors_slider,
-                msaa_label,
-                msaa_slider,
-                smooth_toggle
+            let position = text(format!("position: {:#?}", self.position.lock().unwrap()));
+            let position_dst = text(format!(
+                "position dst: {:#?}",
+                self.position_dst.lock().unwrap()
+            ));
+
+            row![
+                column![position, position_dst],
+                column![
+                    close_button,
+                    fractal_list,
+                    num_iters_label,
+                    num_iters_slider,
+                    num_colors_label,
+                    num_colors_slider,
+                    msaa_label,
+                    msaa_slider,
+                    smooth_toggle
+                ]
+                .spacing(5)
             ]
-            .spacing(5)]
-            .width(200)
+            .spacing(20)
+            .width(500)
             .padding(10)
         };
         container(content)

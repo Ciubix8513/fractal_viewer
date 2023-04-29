@@ -14,7 +14,7 @@ use std::{
         Arc, Mutex,
     },
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 use winit::{
     dpi::PhysicalPosition,
@@ -33,6 +33,18 @@ where
         + Copy,
 {
     a + (b - a) * t
+}
+
+fn lerp_arr<T>(a: &[T; 2], b: &[T; 2], t: f32) -> [T; 2]
+where
+    T: std::ops::Add<Output = T>
+        + std::ops::Mul<f32, Output = T>
+        + std::ops::Sub<Output = T>
+        + Copy,
+{
+    assert_eq!(a.len(), b.len(), "Arrays must have the same length");
+
+    [lerp(a[0], b[0], t), lerp(a[1], b[1], t)]
 }
 
 static RECIEVER: Lazy<Arc<Mutex<Option<Receiver<()>>>>> = Lazy::new(|| Arc::new(Mutex::new(None)));
@@ -119,17 +131,20 @@ fn main() {
 
     let mut state =
         program::State::new(controls, viewport.logical_size(), &mut renderer, &mut debug);
-    let mut zoom = 1.0;
-    let mut zoom_dst = zoom;
 
-    let mut last_frame_time = Instant::now();
+    let mut zoom = 1000.0;
+    let mut zoom_dst = zoom;
+    let mut zooming = false;
+    let mut zoom_dst_position = [0.0, 0.0];
+    let mut position = [0.0, 0.0];
+    let mut position_dst: [f32; 2] = [0.0, 0.0];
+    let mut dragging = false;
 
     //Just to send a ping
     let (tx, rx) = channel::<()>();
     //Prepare data for multithreading
     *RECIEVER.lock().unwrap() = Some(rx);
     *WINDOW.lock().unwrap() = Some(window);
-    let mut zooming = false;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = winit::event_loop::ControlFlow::Wait;
@@ -138,6 +153,13 @@ fn main() {
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {
+                        if dragging {
+                            let delta = [
+                                (position.x - cursor_position.x) as f32 / zoom,
+                                (position.y - cursor_position.y) as f32 / zoom,
+                            ];
+                            position_dst = [delta[0] + position_dst[0], delta[1] + position_dst[1]];
+                        }
                         cursor_position = position;
                     }
                     WindowEvent::ModifiersChanged(new_modifiers) => {
@@ -152,6 +174,13 @@ fn main() {
                     WindowEvent::MouseWheel { delta, .. } => match delta {
                         winit::event::MouseScrollDelta::LineDelta(_, y) => {
                             zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01);
+                            let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
+                            zoom_dst_position = [
+                                ((cursor_position.x as f32 / size.width as f32) * 2.0 - 1.0),
+                                // / zoom,
+                                -((cursor_position.y as f32 / size.height as f32) * 2.0 - 1.0),
+                                // / zoom,
+                            ];
                             zooming = true;
                             //Spawn a thread to request redraws
                             thread::spawn(|| loop {
@@ -165,10 +194,12 @@ fn main() {
                                 WINDOW.lock().unwrap().as_mut().unwrap().request_redraw();
                                 thread::sleep(Duration::from_secs_f32(1.0 / 60.0));
                             });
-                            //Reset delta time to avoid jumps
-                            last_frame_time = Instant::now();
                         }
                         winit::event::MouseScrollDelta::PixelDelta(_) => todo!(),
+                    },
+                    WindowEvent::MouseInput { button, .. } => match button {
+                        winit::event::MouseButton::Left => dragging = !dragging,
+                        _ => {}
                     },
                     _ => {}
                 }
@@ -218,24 +249,38 @@ fn main() {
                 }
                 match surface.get_current_texture() {
                     Ok(frame) => {
-                        //Delta time calculation (Thank you chat gpt)
-                        let current_time = Instant::now();
-                        let delta_time = current_time.duration_since(last_frame_time).as_secs_f32();
-                        last_frame_time = current_time;
+                        let fp = [
+                            zoom_dst_position[0] / zoom - position[0],
+                            zoom_dst_position[1] / zoom - position[1],
+                        ];
 
                         if zooming {
-                            zoom = lerp(zoom, zoom_dst, delta_time * 1.2);
+                            zoom = lerp(zoom, zoom_dst, 0.2);
                             if f32::abs(zoom_dst - zoom) < 0.05 {
                                 zooming = false;
                                 tx.send(()).unwrap();
                             }
                         }
+                        let pos_delta = [
+                            zoom_dst_position[0] / zoom - position[0],
+                            zoom_dst_position[1] / zoom - position[1],
+                        ];
+
+                        position_dst = [
+                            position_dst[0] + pos_delta[0] - fp[0],
+                            position_dst[1] + pos_delta[1] - fp[1],
+                        ];
+
+                        position = lerp_arr(&position, &position_dst, 0.2);
 
                         let mut encoder =
                             device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                                 label: None,
                             });
                         let program = state.program();
+
+                        *program.position.lock().unwrap().as_mut() = position.to_vec();
+                        *program.position_dst.lock().unwrap().as_mut() = zoom_dst_position.to_vec();
 
                         let view = frame
                             .texture
@@ -258,6 +303,7 @@ fn main() {
                                 },
                             msaa: program.msaa,
                             zoom,
+                            position,
                             ..Default::default()
                         }
                         .to_uniform_data();
