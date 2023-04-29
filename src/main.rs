@@ -175,7 +175,7 @@ fn main() {
                     }
                     WindowEvent::MouseWheel { delta, .. } => match delta {
                         winit::event::MouseScrollDelta::LineDelta(_, y) => {
-                            zoom_dst = f32::max(zoom_dst + (y / 10.0), 0.01);
+                            zoom_dst *= if y < 0.0 { 0.86444 } else { 1.21 };
                             let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                             zoom_dst_position = [
                                 (cursor_position.x as f32 / size.width as f32).mul_add(2.0, -1.0),
