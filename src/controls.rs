@@ -3,8 +3,8 @@ use std::ops::RangeInclusive;
 use iced_wgpu::Color;
 use iced_winit::{
     alignment, column, row,
-    widget::{button, checkbox, container, pick_list, slider, text},
-    Command, Length, Program,
+    widget::{button, checkbox, column, container, pick_list, slider, text},
+    Command, Length, Program, Widget,
 };
 
 #[derive(Default, Clone, Debug, PartialEq, Eq, Copy)]
@@ -48,6 +48,9 @@ pub enum Message {
     NumItersChanged(u32),
     ToggleSmooth(bool),
     MsaaChanged(u32),
+    ColorRemove(usize),
+    OpenColorPicker(usize),
+    ColorAdd,
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -90,6 +93,9 @@ impl Program for Controls {
             Message::NumItersChanged(value) => self.num_iters = value,
             Message::ToggleSmooth(value) => self.smooth_enabled = value,
             Message::MsaaChanged(value) => self.msaa = value,
+            Message::ColorRemove(index) => _ = self.colors.remove(index),
+            Message::ColorAdd => self.colors.push(Color::from_rgb(1.0, 1.0, 1.0)),
+            Message::OpenColorPicker(_) => todo!(),
         }
         Command::none()
     }
@@ -127,6 +133,36 @@ impl Program for Controls {
 
             let smooth_toggle = checkbox("Smooth?", self.smooth_enabled, Message::ToggleSmooth);
 
+            let colors_label = row![
+                text("Colors"),
+                button(text("+").horizontal_alignment(alignment::Horizontal::Center))
+                    .height(30)
+                    .width(30)
+                    .on_press(Message::ColorAdd)
+            ]
+            .spacing(5);
+            let colors = column(
+                self.colors
+                    .iter()
+                    .zip(0..self.colors.len())
+                    .map(|t| {
+                        row![
+                            button("")
+                                .on_press(Message::OpenColorPicker(t.1))
+                                .width(30)
+                                .height(30),
+                            button(text("X").horizontal_alignment(alignment::Horizontal::Center))
+                                .on_press(Message::ColorRemove(t.1))
+                                .width(30)
+                                .height(30),
+                        ]
+                        .spacing(20)
+                        .into()
+                    })
+                    .collect(),
+            )
+            .spacing(10);
+
             row![column![
                 close_button,
                 fractal_list,
@@ -136,7 +172,9 @@ impl Program for Controls {
                 num_colors_slider,
                 msaa_label,
                 msaa_slider,
-                smooth_toggle
+                smooth_toggle,
+                colors_label,
+                colors
             ]
             .spacing(10)]
             .spacing(20)
