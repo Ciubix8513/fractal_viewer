@@ -59,11 +59,11 @@ fn mandelbrot(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
 
     // skip computation inside M1 - https://iquilezles.org/articles/mset1bulb
     if 256.0 * c2 * c2 - 96.0 * c2 + 32.0 * c.x - 3.0 < 0.0 {
-        return vec2<f32>(6.9, 420.0);
+        return vec2<f32>(69.0, 4200.0);
     }
     // skip computation inside M2 - https://iquilezles.org/articles/mset2bulb
     if 16.0 * (c2 + 2.0 * c.x + 1.0) - 1.0 < 0.0 {
-        return vec2<f32>(6.9, 420.0);
+        return vec2<f32>(69.0, 4200.0);
     }
     return complex_square(z) + c;
 }
@@ -76,11 +76,14 @@ fn tricorn(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
     return complex_square(z1) + c;
 }
 fn feather(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
+    if length(c) < 0.53 {
+        return vec2<f32>(69.0, 4200.0);
+    }
     return complex_div(complex_cube(z), (vec2<f32>(1.0, 0.0) + (z * z))) + c;
 }
 fn eye(z: vec2<f32>, c: vec2<f32>) -> vec2<f32> {
-    if length(c) > 5.0 {
-        return vec2<f32>(6.9, 420.0);
+    if c.x < -1.34 || c.x > 4.0 || abs(c.y) > 1.65 {
+        return vec2<f32>(69.0, 4200.0);
     }
     return complex_square(complex_div(z, c)) + c;
 }
@@ -110,7 +113,7 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
     var iter = 0u;
 
     var max_dot = 5.0;
-    if (uniforms.fractal * 8u) == 8u || (uniforms.fractal & 16u) == 16u {max_dot = 2000.0;}
+    if (uniforms.fractal & 8u) == 8u || (uniforms.fractal & 16u) == 16u {max_dot = 200000.0;}
     let max_iteration = uniforms.max_iter;
 
     while dot(coords, coords) <= max_dot && iter < max_iteration {
@@ -129,7 +132,7 @@ fn fractal(C: vec2<f32>) -> vec4<f32> {
         iter += 1u;
     }
     var i = f32(iter);
-    if coords.x == 6.9 && coords.y == 420.0 {
+    if coords.x == 69.0 && coords.y == 4200.0 {
         i = f32(max_iteration);
     } else if (uniforms.fractal & 2147483648u) != 0u {
         i = i - log2(log2(dot(coords, coords))) + 4.0;
