@@ -22,6 +22,7 @@ use winit::{
 
 mod controls;
 mod scene;
+mod theme;
 
 fn lerp<T>(a: T, b: T, t: f32) -> T
 where

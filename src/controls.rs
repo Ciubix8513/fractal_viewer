@@ -1,10 +1,11 @@
 use std::ops::RangeInclusive;
 
+use iced_aw::ColorPicker;
 use iced_wgpu::Color;
 use iced_winit::{
     alignment, column, row,
     widget::{button, checkbox, column, container, pick_list, slider, text},
-    Command, Length, Program, Widget,
+    Command, Length, Program,
 };
 
 #[derive(Default, Clone, Debug, PartialEq, Eq, Copy)]
@@ -38,6 +39,8 @@ pub struct Controls {
     pub num_colors: u32,
     pub smooth_enabled: bool,
     pub msaa: u32,
+    color_editing_index: usize,
+    editing_color: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -51,22 +54,33 @@ pub enum Message {
     ColorRemove(usize),
     OpenColorPicker(usize),
     ColorAdd,
+    CancelColor,
+    SubmitColor(iced_core::Color),
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
     vec![color.r, color.g, color.b, color.a]
 }
 
+// fn to_core_color(color: &Color) -> iced_core::Color {
+//     iced_core::Color {
+//         r: color.r,
+//         g: color.g,
+//         b: color.b,
+//         a: color.a,
+//     }
+// }
+
 impl Controls {
     pub fn new() -> Self {
         Self {
             //The trans flag colors uwu 🏳️‍⚧️
             colors: vec![
-                Color::from_rgba(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0, 1.0),
-                Color::from_rgba(247.0 / 255.0, 168.0 / 255.0, 184.0 / 255.0, 1.0),
-                Color::from_rgba(1.0, 1.0, 1.0, 1.0),
-                Color::from_rgba(247.0 / 255.0, 168.0 / 255.0, 184.0 / 255.0, 1.0),
-                Color::from_rgba(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0, 1.0),
+                Color::from_rgb(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0),
+                Color::from_rgb(247.0 / 255.0, 168.0 / 255.0, 184.0 / 255.0),
+                Color::from_rgb(1.0, 1.0, 1.0),
+                Color::from_rgb(247.0 / 255.0, 168.0 / 255.0, 184.0 / 255.0),
+                Color::from_rgb(85.0 / 255.0, 205.0 / 255.0, 252.0 / 255.0),
             ],
             num_iters: 1000,
             num_colors: 200,
@@ -95,7 +109,15 @@ impl Program for Controls {
             Message::MsaaChanged(value) => self.msaa = value,
             Message::ColorRemove(index) => _ = self.colors.remove(index),
             Message::ColorAdd => self.colors.push(Color::from_rgb(1.0, 1.0, 1.0)),
-            Message::OpenColorPicker(_) => todo!(),
+            Message::OpenColorPicker(index) => {
+                self.color_editing_index = index;
+                self.editing_color = true;
+            }
+            Message::CancelColor => self.editing_color = false,
+            Message::SubmitColor(color) => {
+                self.editing_color = false;
+                self.colors[self.color_editing_index] = color;
+            }
         }
         Command::none()
     }
@@ -146,12 +168,24 @@ impl Program for Controls {
                     .iter()
                     .zip(0..self.colors.len())
                     .map(|t| {
+                        let color = button("")
+                            .on_press(Message::OpenColorPicker(t.1))
+                            .width(30)
+                            .height(30)
+                            .style(iced_winit::theme::Button::Custom(Box::new(
+                                crate::theme::Theme { color: *t.0 },
+                            )));
+                        let picker = ColorPicker::new(
+                            self.color_editing_index == t.1 && self.editing_color,
+                            *t.0,
+                            // to_core_color(t.0),
+                            color,
+                            Message::CancelColor,
+                            Message::SubmitColor,
+                        );
                         row![
-                            button("")
-                                .on_press(Message::OpenColorPicker(t.1))
-                                .width(30)
-                                .height(30),
-                            button(text("X").horizontal_alignment(alignment::Horizontal::Center))
+                            picker,
+                            button(text("X").horizontal_alignment(alignment::Horizontal::Center),)
                                 .on_press(Message::ColorRemove(t.1))
                                 .width(30)
                                 .height(30),
