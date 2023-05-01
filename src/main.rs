@@ -147,6 +147,7 @@ fn main() {
     let (tx, rx) = channel::<()>();
     //Prepare data for multithreading
     *RECIEVER.lock().unwrap() = Some(rx);
+    let mut size = window.inner_size();
     *WINDOW.lock().unwrap() = Some(window);
 
     event_loop.run(move |event, _, control_flow| {
@@ -170,6 +171,7 @@ fn main() {
                     }
                     WindowEvent::Resized(_) => {
                         resized = true;
+                        size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                     }
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -177,7 +179,6 @@ fn main() {
                     WindowEvent::MouseWheel { delta, .. } => match delta {
                         winit::event::MouseScrollDelta::LineDelta(_, y) => {
                             zoom_dst *= if y < 0.0 { 0.86444 } else { 1.21 };
-                            let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                             zoom_dst_position = [
                                 (cursor_position.x as f32 / size.width as f32).mul_add(2.0, -1.0),
                                 // / zoom,
@@ -238,7 +239,6 @@ fn main() {
             }
             Event::RedrawRequested(_) => {
                 if resized {
-                    let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
                     viewport = Viewport::with_physical_size(
                         Size::new(size.width, size.height),
                         WINDOW.lock().unwrap().as_ref().unwrap().scale_factor(),
@@ -291,8 +291,6 @@ fn main() {
                         let view = frame
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
-
-                        let size = WINDOW.lock().unwrap().as_ref().unwrap().inner_size();
 
                         let raw_colors = program.get_colors_raw();
                         let raw_data = scene::ShaderDataUniforms {
