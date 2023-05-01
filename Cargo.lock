@@ -646,7 +646,6 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "iced_aw",
- "iced_core",
  "iced_wgpu",
  "iced_winit",
  "once_cell",

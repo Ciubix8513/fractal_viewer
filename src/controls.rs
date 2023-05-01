@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use iced_aw::ColorPicker;
 use iced_wgpu::Color;
 use iced_winit::{
-    alignment, column, row,
+    alignment, column, row, theme,
     widget::{button, checkbox, column, container, pick_list, slider, text},
     Command, Length, Program,
 };
@@ -55,21 +55,21 @@ pub enum Message {
     OpenColorPicker(usize),
     ColorAdd,
     CancelColor,
-    SubmitColor(iced_core::Color),
+    SubmitColor(Color),
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
     vec![color.r, color.g, color.b, color.a]
 }
 
-// fn to_core_color(color: &Color) -> iced_core::Color {
-//     iced_core::Color {
-//         r: color.r,
-//         g: color.g,
-//         b: color.b,
-//         a: color.a,
-//     }
-// }
+fn color_hex(color: &Color) -> String {
+    let r_hex = format!("{:02x}", (color.r * 255.0) as u8);
+    let g_hex = format!("{:02x}", (color.g * 255.0) as u8);
+    let b_hex = format!("{:02x}", (color.b * 255.0) as u8);
+    let a_hex = format!("{:02x}", (color.a * 255.0) as u8);
+
+    format!("#{}{}{}{}", r_hex, g_hex, b_hex, a_hex)
+}
 
 impl Controls {
     pub fn new() -> Self {
@@ -185,6 +185,9 @@ impl Program for Controls {
                         );
                         row![
                             picker,
+                            text(color_hex(t.0))
+                                .style(theme::Text::Color(*t.0))
+                                .width(80),
                             button(text("X").horizontal_alignment(alignment::Horizontal::Center),)
                                 .on_press(Message::ColorRemove(t.1))
                                 .width(30)
