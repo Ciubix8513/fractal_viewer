@@ -227,7 +227,7 @@ fn main() {
                         viewport.logical_size(),
                         conversion::cursor_position(cursor_position, viewport.scale_factor()),
                         &mut renderer,
-                        &iced_wgpu::Theme::Dark,
+                        &iced_wgpu::Theme::Light,
                         &renderer::Style {
                             text_color: Color::WHITE,
                         },
@@ -355,7 +355,13 @@ fn main() {
                         staging_belt.finish();
                         queue.submit(Some(encoder.finish()));
 
-                        if program.pending_screenshot {}
+                        // let mut pending = program.pending_screenshot.lock().unwrap();
+                        // if *pending {
+                        //     println!("Taking screenshot");
+                        //     *pending = false;
+                        //     let copy = frame.texture.as_image_copy();
+                        //     // queue.write_texture(copy, data, data_layout, size);
+                        // }
 
                         frame.present();
                         staging_belt.recall();

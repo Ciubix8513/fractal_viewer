@@ -1,4 +1,7 @@
-use std::ops::RangeInclusive;
+use std::{
+    ops::RangeInclusive,
+    sync::{Arc, Mutex},
+};
 
 use iced_aw::ColorPicker;
 use iced_wgpu::Color;
@@ -39,7 +42,7 @@ pub struct Controls {
     pub num_colors: u32,
     pub smooth_enabled: bool,
     pub msaa: u32,
-    pub pending_screenshot: bool,
+    pub pending_screenshot: Arc<Mutex<bool>>,
     color_editing_index: usize,
     editing_color: bool,
 }
@@ -57,7 +60,7 @@ pub enum Message {
     ColorAdd,
     CancelColor,
     SubmitColor(Color),
-    ScreenshotClick,
+    // ScreenshotClick,
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -119,8 +122,7 @@ impl Program for Controls {
             Message::SubmitColor(color) => {
                 self.editing_color = false;
                 self.colors[self.color_editing_index] = color;
-            }
-            Message::ScreenshotClick => self.pending_screenshot = true,
+            } // Message::ScreenshotClick => *self.pending_screenshot.lock().unwrap() = true,
         }
         Command::none()
     }
@@ -223,13 +225,10 @@ impl Program for Controls {
             .width(220)
             .padding(10)
         };
-        container(
-            column![
-                button("Screenshot").on_press(Message::ScreenshotClick),
-                content,
-            ]
-            .spacing(5),
-        )
+        container(column![
+            // button("Screenshot").on_press(Message::ScreenshotClick),
+            content,
+        ])
         .width(Length::Fill)
         .align_x(alignment::Horizontal::Right)
         .into()
