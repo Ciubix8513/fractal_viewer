@@ -354,6 +354,9 @@ fn main() {
                         });
                         staging_belt.finish();
                         queue.submit(Some(encoder.finish()));
+
+                        if program.pending_screenshot {}
+
                         frame.present();
                         staging_belt.recall();
                     }

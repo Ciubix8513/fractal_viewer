@@ -4,7 +4,7 @@ use iced_aw::ColorPicker;
 use iced_wgpu::Color;
 use iced_winit::{
     alignment, column, row, theme,
-    widget::{button, checkbox, column, container, pick_list, slider, text},
+    widget::{button, checkbox, column, container, pick_list, scrollable, slider, text},
     Command, Length, Program,
 };
 
@@ -39,6 +39,7 @@ pub struct Controls {
     pub num_colors: u32,
     pub smooth_enabled: bool,
     pub msaa: u32,
+    pub pending_screenshot: bool,
     color_editing_index: usize,
     editing_color: bool,
 }
@@ -56,6 +57,7 @@ pub enum Message {
     ColorAdd,
     CancelColor,
     SubmitColor(Color),
+    ScreenshotClick,
 }
 
 fn color_raw(color: &Color) -> Vec<f32> {
@@ -118,6 +120,7 @@ impl Program for Controls {
                 self.editing_color = false;
                 self.colors[self.color_editing_index] = color;
             }
+            Message::ScreenshotClick => self.pending_screenshot = true,
         }
         Command::none()
     }
@@ -163,42 +166,44 @@ impl Program for Controls {
                     .on_press(Message::ColorAdd)
             ]
             .spacing(5);
-            let colors = column(
-                self.colors
-                    .iter()
-                    .zip(0..self.colors.len())
-                    .map(|t| {
-                        let color = button("")
-                            .on_press(Message::OpenColorPicker(t.1))
-                            .width(30)
-                            .height(30)
-                            .style(iced_winit::theme::Button::Custom(Box::new(
-                                crate::theme::Theme { color: *t.0 },
-                            )));
-                        let picker = ColorPicker::new(
-                            self.color_editing_index == t.1 && self.editing_color,
-                            *t.0,
-                            // to_core_color(t.0),
-                            color,
-                            Message::CancelColor,
-                            Message::SubmitColor,
-                        );
-                        row![
-                            picker,
-                            text(color_hex(t.0))
-                                .style(theme::Text::Color(*t.0))
-                                .width(80),
-                            button(text("X").horizontal_alignment(alignment::Horizontal::Center),)
+            let colors = scrollable(
+                column(
+                    self.colors
+                        .iter()
+                        .zip(0..self.colors.len())
+                        .map(|t| {
+                            row![
+                                ColorPicker::new(
+                                    self.color_editing_index == t.1 && self.editing_color,
+                                    *t.0,
+                                    button("")
+                                        .on_press(Message::OpenColorPicker(t.1))
+                                        .width(30)
+                                        .height(30)
+                                        .style(iced_winit::theme::Button::Custom(Box::new(
+                                            crate::theme::Theme { color: *t.0 },
+                                        ))),
+                                    Message::CancelColor,
+                                    Message::SubmitColor,
+                                ),
+                                text(color_hex(t.0))
+                                    .style(theme::Text::Color(*t.0))
+                                    .width(80),
+                                button(
+                                    text("X").horizontal_alignment(alignment::Horizontal::Center),
+                                )
                                 .on_press(Message::ColorRemove(t.1))
                                 .width(30)
                                 .height(30),
-                        ]
-                        .spacing(20)
-                        .into()
-                    })
-                    .collect(),
-            )
-            .spacing(10);
+                            ]
+                            .spacing(20)
+                            .into()
+                        })
+                        .collect(),
+                )
+                .padding(12)
+                .spacing(10),
+            );
 
             row![column![
                 close_button,
@@ -215,12 +220,18 @@ impl Program for Controls {
             ]
             .spacing(10)]
             .spacing(20)
-            .width(200)
+            .width(220)
             .padding(10)
         };
-        container(content)
-            .width(Length::Fill)
-            .align_x(alignment::Horizontal::Right)
-            .into()
+        container(
+            column![
+                button("Screenshot").on_press(Message::ScreenshotClick),
+                content,
+            ]
+            .spacing(5),
+        )
+        .width(Length::Fill)
+        .align_x(alignment::Horizontal::Right)
+        .into()
     }
 }
